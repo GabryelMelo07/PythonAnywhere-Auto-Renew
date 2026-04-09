@@ -1,15 +1,17 @@
 import os
 import sys
+import time
 import requests
 from bs4 import BeautifulSoup
-import time
 from dotenv import load_dotenv
+from datetime import datetime, timezone
 
 # Load environment variables from .env file (for local testing)
 load_dotenv()
 
 USERNAME = os.environ.get('PA_USERNAME')
 PASSWORD = os.environ.get('PA_PASSWORD')
+DISCORD_WEBHOOK_URL = os.environ.get('DISCORD_WEBHOOK_URL')
 
 if not USERNAME or not PASSWORD:
     print("❌ Error: PA_USERNAME and PA_PASSWORD must be set")
@@ -17,6 +19,27 @@ if not USERNAME or not PASSWORD:
 
 LOGIN_URL = "https://www.pythonanywhere.com/login/"
 DASHBOARD_URL = f"https://www.pythonanywhere.com/user/{USERNAME}/webapps/"
+
+def send_discord_alert(title, message, level="error"):
+    if not DISCORD_WEBHOOK_URL:
+        return
+
+    payload = {
+        "embeds": [
+            {
+                "title": title,
+                "description": message,
+                "color": 15158332 if level == "error" else 3066993,
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            }
+        ]
+    }
+
+    try:
+        requests.post(DISCORD_WEBHOOK_URL, json=payload, timeout=10)
+    except Exception:
+        pass
+
 
 def renew():
     session = requests.Session()
@@ -125,12 +148,15 @@ def renew():
             
     except requests.Timeout:
         print("❌ Request timed out")
+        send_discord_alert("PythonAnywhere Renewal Failed", "The request timed out while trying to renew the web app.", level="error")
         return False
     except requests.RequestException as e:
         print(f"❌ Network error: {e}")
+        send_discord_alert("PythonAnywhere Renewal Failed", f"Network error occurred: {e}", level="error")
         return False
     except Exception as e:
         print(f"❌ Unexpected error: {e}")
+        send_discord_alert("PythonAnywhere Renewal Failed", f"Unexpected error occurred: {e}", level="error")
         return False
 
 if __name__ == "__main__":

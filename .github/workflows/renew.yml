@@ -31,6 +31,7 @@ jobs:
         env:
           PA_USERNAME: ${{ secrets.PA_USERNAME }}
           PA_PASSWORD: ${{ secrets.PA_PASSWORD }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: python3 renew_python_anywhere.py
       
       - name: Keep Alive Workflow (Success)
